@@ -1,1 +1,133 @@
+USE sql_analysis;
 
+--- For player_details table
+ALTER TABLE player_details DROP CONSTRAINT PK_player_details;
+ALTER TABLE player_details DROP COLUMN myunknowncolumn;
+ALTER TABLE player_details ALTER COLUMN L1_Status varchar(30);
+ALTER TABLE player_details ALTER COLUMN L2_Status varchar(30);
+
+-- Check the structure of player_details table
+SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'player_details';
+
+
+-- For level_details table
+ALTER TABLE level_details ALTER COLUMN start_datetime datetime;
+ALTER TABLE level_details ALTER COLUMN Dev_Id varchar(10);
+ALTER TABLE level_details ALTER COLUMN Difficulty varchar(15);
+ALTER TABLE level_details ADD CONSTRAINT PK_level_details PRIMARY KEY (P_ID, Dev_id, start_datetime);
+
+-- Check the structure of level_details table
+SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'level_details';
+
+--QUERY1
+select level_details.P_ID,Dev_ID,PName,difficulty 
+from level_details left join  player_details 
+on level_details.P_ID=player_details.P_ID
+where Level=0;
+
+--QUERY2
+select L1_code,avg(kill_count) as Average_Kill_Count 
+from player_details left join level_details 
+on level_details.P_ID=player_details.P_ID 
+where lives_earned=2 and stages_crossed>=3 
+group by L1_code 
+order by Average_Kill_Count;
+
+--QUERY3
+select P_ID,difficulty,stages_crossed as total_number_of_stages 
+from level_details 
+where level = 2 and Dev_ID like 'zm_%'  
+order by stages_crossed desc;
+
+--QUERY4
+SELECT P_ID, COUNT(DISTINCT CAST(start_datetime AS DATE)) AS Total_Number_Of_Unique_Dates 
+FROM level_details 
+GROUP BY P_ID 
+HAVING COUNT(DISTINCT CAST(start_datetime AS DATE)) > 1;
+
+--QUERY5
+SELECT P_ID, level, SUM(Kill_Count) AS Level_Wise_Count 
+FROM level_details 
+WHERE Difficulty = 'Medium' 
+GROUP BY P_ID, level 
+HAVING AVG(Kill_Count) > (SELECT AVG(Kill_Count) FROM level_details WHERE Difficulty = 'Medium');
+
+--QUERY6
+select Level,L1_code,L2_Code,sum(lives_earned) as Total_Lives_Earned 
+from level_details left join player_details on level_details.P_ID=player_details.P_ID  
+group by level,L1_Code,L2_Code 
+having level !=0 order by level;
+
+--QUERY7
+select Dev_ID,score,difficulty,Rank1 from(
+select Dev_ID,score,difficulty,row_number() over (partition by Dev_ID order by score asc) as Rank1 from  level_details) 
+as ranked where Rank1<=3;
+
+--QUERY8
+select Dev_ID,min(start_datetime)as first_login_datetime 
+from level_details 
+group by Dev_Id;
+
+--QUERY9
+select difficulty,score,Dev_ID,Rank1 from(
+select difficulty,score,Dev_ID,rank() over (partition by Difficulty order by score asc) as Rank1 from  level_details ) 
+as ranked where Rank1<=5;
+
+--QUERY10
+select P_ID,Dev_Id,min(start_datetime)as first_login_datetime 
+from level_details 
+group by P_ID,Dev_Id;
+
+--QUERY11A
+SELECT 
+    P_ID,
+    start_datetime,
+    SUM(kill_count) OVER (PARTITION BY P_ID ORDER BY start_datetime) AS total_kills_played
+FROM 
+level_details;
+
+--QUERY11B
+SELECT 
+    t1.P_ID,
+    t1.start_datetime,
+    (SELECT SUM(t2.kill_count) 
+     FROM level_details t2 
+     WHERE t2.P_ID = t1.P_ID AND t2.start_datetime <= t1.start_datetime) AS total_kills_played
+FROM 
+    level_details t1
+ORDER BY 
+    t1.P_ID,t1.start_datetime;
+
+--QUERY12
+	select P_ID,start_datetime,stages_crossed,
+sum(Stages_crossed)  over (partition by P_ID order  by start_datetime asc rows between unbounded preceding and 1 preceding )as cumulative_sum 
+from level_details order by P_ID,start_datetime;
+
+--QUERY13
+select Dev_ID,P_ID,Top_3_Score from(
+select Dev_ID,P_ID,sum(score) As Top_3_Score,row_number() over(partition by Dev_Id order by sum(score)desc)as rank1 
+from level_details
+group by Dev_Id,P_ID)as subquery 
+where rank1<=3;
+
+--QUERY14
+SELECT P_ID, SUM(score) AS Total_score
+FROM level_details
+GROUP BY P_ID
+HAVING 
+    SUM(score) >
+    (
+        SELECT 
+            0.5 * AVG(Total_score)
+        FROM (
+            SELECT 
+                P_ID,
+                SUM(score) AS Total_score
+            FROM 
+                level_details
+            GROUP BY P_ID
+        ) AS SubqueryAlias
+);
+
+--QUERY15
+select start_datetime,stages_crossed,sum(stages_crossed)  over (order  by start_datetime)as cumulative_sum from level_details;
