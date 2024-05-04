@@ -1,3 +1,17 @@
+-- Problem Statement - Game Analysis dataset
+-- 1) Players play a game divided into 3-levels (L0,L1 and L2)
+-- 2) Each level has 3 difficulty levels (Low,Medium,High)
+-- 3) At each level,players have to kill the opponents using guns/physical fight
+-- 4) Each level has multiple stages at each difficulty level.
+-- 5) A player can only play L1 using its system generated L1_code.
+-- 6) Only players who have played Level1 can possibly play Level2 
+--    using its system generated L2_code.
+-- 7) By default a player can play L0.
+-- 8) Each player can login to the game using a Dev_ID.
+-- 9) Players can earn extra lives at each stage in a level.
+
+
+Queries
 1. Extract `P_ID`, `Dev_ID`, `PName`, and `Difficulty_level` of all players at Level 0.
 2. Find `Level1_code`wise average `Kill_Count` where `lives_earned` is 2, and at least 3
 stages are crossed.
